@@ -46,3 +46,10 @@ This manifest tracks planned and completed imports for `my-farm-advisor-skills`.
 - exclusions: `.git/`; generated `examples/**/output/` artifacts; generated `scripts/output/` artifacts; no unrelated scientific skills outside `scientific-skills/qtl-analysis/`; no remote flattening of the local grouped example taxonomy
 - local_modifications: Imported the local grouped example layout as the structural base, backfilled remote-only `README.md` and `scripts/qtl_cli.py`, merged richer remote SKILL sections without changing example-first behavior, normalized stale path assumptions to `my-farm-qtl-analysis/`, preserved `scripts/verify_gpu_hpc.py` and `VISUALIZATION_SUMMARY.md`, and removed generated outputs after asset audit. No new LFS-tracked assets were required.
 - update_procedure: Re-run `GIT_MASTER=1 git ls-remote https://github.com/borealBytes/my-farm-advisor.git refs/heads/main`, capture the resolved baseline SHA for `skills/my-farm-qtl-analysis`, rerun `GIT_MASTER=1 git branch --show-current`, `GIT_MASTER=1 git rev-parse HEAD`, and `GIT_MASTER=1 git status --short` in the local worktree, copy only `scientific-skills/qtl-analysis/`, re-apply the remote backfill files and grouped-path normalization, repeat the asset audit, and refresh this manifest plus `my-farm-qtl-analysis/PROVENANCE.md` in the same commit.
+
+## Forbidden Imports
+
+The following old My Farm Advisor Superior Byteworks skill copies are explicitly excluded from this repository. They are superseded by canonical skills maintained in `superior-byte-works-skills` and must not be imported here.
+
+- `superior-byte-works-wrighter` — excluded, superseded by the canonical Wrighter delivery in `superior-byte-works-skills`
+- `superior-byte-works-google-timesfm-forecasting` — excluded, superseded by the Google-approved TimesFM forecasting skill in `superior-byte-works-skills`

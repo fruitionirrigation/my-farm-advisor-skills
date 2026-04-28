@@ -18,6 +18,8 @@ This repository is the canonical home for My Farm Advisor agent skills. It conta
 | **my-farm-breeding-trial-management** | `my-farm-breeding-trial-management/` | End-to-end breeding trial workflows: design, fieldbook management, germplasm selection, crossing plans, and field trial placement. |
 | **my-farm-qtl-analysis** | `my-farm-qtl-analysis/` | Quantitative trait locus mapping, quality control, population structure analysis, genomic prediction, and reporting. |
 
+Only the three skills listed above are in scope for this repository. No additional My Farm skills are imported or planned.
+
 ### What Is Not Here
 
 The following old My Farm Advisor Superior Byteworks skill copies are explicitly excluded and do not exist in this repository:
@@ -34,6 +36,67 @@ This repository depends on reusable Superior Byteworks skills, which are **exter
 - **superior-byte-works-skills** — the canonical repository for reusable Superior Byteworks skills such as Wrighter delivery and TimesFM forecasting.
 
 Installation and version requirements for each dependency are documented in the per-skill `SKILL.md` files.
+
+---
+
+## Installation
+
+### 1. Clone This Repository
+
+```bash
+git clone https://github.com/borealBytes/my-farm-advisor.git my-farm-advisor-skills
+cd my-farm-advisor-skills
+```
+
+### 2. Install Superior Byteworks Dependencies
+
+This repository depends on Superior Byteworks skills that must be installed separately. Do not copy them into this repository.
+
+Clone the SBW skills repository into a sibling directory:
+
+```bash
+# From the parent of my-farm-advisor-skills
+git clone https://github.com/superiorbyteworks/superior-byte-works-skills.git
+```
+
+Expected directory layout after both clones:
+
+```
+parent-directory/
+├── my-farm-advisor-skills/      # this repo
+└── superior-byte-works-skills/  # dependency
+    ├── wrighter/
+    └── timesfm-forecasting/
+```
+
+### 3. How My Farm Skills Discover SBW Skills
+
+My Farm skills reference SBW skills through relative path resolution or OpenCode skill discovery. The exact mechanism depends on your runtime:
+
+- **OpenCode runtime**: Configure both repositories as skill sources. OpenCode resolves skill names across all configured sources.
+- **Direct script usage**: Some My Farm scripts may resolve SBW skills via relative paths or environment variables. Check individual skill READMEs for path configuration.
+- **Custom runtimes**: Set `SBW_SKILLS_PATH` or an equivalent environment variable to point to your `superior-byte-works-skills` checkout.
+
+### 4. Update Order
+
+When updating both repositories, always update SBW skills first, then My Farm skills:
+
+1. Pull latest `superior-byte-works-skills` and verify it passes validation.
+2. Pull latest `my-farm-advisor-skills` and verify it passes validation.
+3. Test integration points between the two repositories.
+
+This order ensures My Farm skills can adapt to any SBW API changes before you commit updates.
+
+### Troubleshooting
+
+| Problem | Cause | Fix |
+|---|---|---|
+| `Skill not found: wrighter` | SBW repo not cloned or not in expected location | Verify `superior-byte-works-skills/` exists as a sibling directory and contains `wrighter/SKILL.md` |
+| `Path resolution failed` | Custom runtime without proper environment variables | Set `SBW_SKILLS_PATH` to the absolute path of your SBW checkout |
+| Outdated skill behavior | Update order violated (My Farm updated before SBW) | Update SBW first, then re-test My Farm |
+| Copied skill files in repo | SBW skills were duplicated into My Farm repo | Delete the copies and use the separate SBW checkout instead |
+
+**Do not copy Superior Byteworks skills into the My Farm repository.** Copied skills drift from the canonical source, break update workflows, and violate the dependency boundary enforced by validation.
 
 ---
 
