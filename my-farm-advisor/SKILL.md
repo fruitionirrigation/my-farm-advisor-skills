@@ -22,7 +22,7 @@ metadata:
 
 ## Purpose
 
-Use My Farm Advisor as the umbrella skill for agricultural data-science and farm-management work. It routes requests into the correct operational area, then into the specific guide or playbook for that task.
+Use My Farm Advisor as the umbrella skill for agricultural data-science and farm-management work. It routes requests into the correct operational area, then into the specific guide, AGENTS.md, or workflow doc for that task.
 
 ## Start Here
 
@@ -50,7 +50,7 @@ Open the subtree index that matches the request:
 
 ## Runtime Notes
 
-This umbrella skill contains large supporting assets and examples. The nested documents are no longer separate discoverable skills; instead, use the subtree indexes and linked guides/playbooks for progressive discovery.
+This umbrella skill contains large supporting assets and examples. The nested documents are no longer separate discoverable skills; instead, use the subtree indexes and linked guides and AGENTS.md files for progressive discovery.
 
 ## Data Notes
 
