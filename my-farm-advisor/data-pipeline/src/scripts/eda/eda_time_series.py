@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
+# pyright: reportAttributeAccessIssue=false
 """
 06_eda_time_series.py - Time series analysis
 
 Creates time series visualizations for weather data (temperature, precipitation).
 
-Input:  data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/tables/iowa_weather_2021_2025.csv
-Output: data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_weather_timeseries.png
-data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_monthly_precip.png
-data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_gdd_analysis.png
+Input:  canonical farm weather table under the runtime root.
+Output: farm weather time-series, precipitation, and GDD plots under the runtime root.
 """
 
-import os
+import sys
+from pathlib import Path
 
 import matplotlib
 import numpy as np
@@ -20,16 +20,25 @@ matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 
+_SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_SCRIPTS_DIR / "lib"))
+
+from lib.paths import farm_reports_dir, farm_weather_path  # noqa: E402
+
+_DEFAULT_GROWER = "iowa-demo-grower"
+_DEFAULT_FARM = "iowa-demo-farm"
+
 
 def main():
     print("=" * 60)
     print("Step 6: Time Series Analysis")
     print("=" * 60)
 
-    os.makedirs("data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports", exist_ok=True)
+    reports_dir = farm_reports_dir(_DEFAULT_GROWER, _DEFAULT_FARM)
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
     weather = pd.read_csv(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/tables/iowa_weather_2021_2025.csv",
+        farm_weather_path(_DEFAULT_GROWER, _DEFAULT_FARM),
         parse_dates=["date"],
     )
     weather = weather.sort_values("date")
@@ -83,15 +92,10 @@ def main():
     plt.xticks(rotation=45)
 
     plt.tight_layout()
-    plt.savefig(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_weather_timeseries.png",
-        dpi=150,
-        bbox_inches="tight",
-    )
+    weather_timeseries_path = reports_dir / "iowa_weather_timeseries.png"
+    plt.savefig(weather_timeseries_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(
-        "✓ Saved: data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_weather_timeseries.png"
-    )
+    print(f"✓ Saved: {weather_timeseries_path}")
 
     # ===============================
     # Plot 2: Monthly Precipitation
@@ -132,15 +136,10 @@ def main():
             )
 
     plt.tight_layout()
-    plt.savefig(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_monthly_precip.png",
-        dpi=150,
-        bbox_inches="tight",
-    )
+    monthly_precip_path = reports_dir / "iowa_monthly_precip.png"
+    plt.savefig(monthly_precip_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(
-        "✓ Saved: data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_monthly_precip.png"
-    )
+    print(f"✓ Saved: {monthly_precip_path}")
 
     # ===============================
     # Plot 3: GDD Analysis
@@ -193,15 +192,10 @@ def main():
     ax2.grid(True, alpha=0.3, axis="y")
 
     plt.tight_layout()
-    plt.savefig(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_gdd_analysis.png",
-        dpi=150,
-        bbox_inches="tight",
-    )
+    gdd_analysis_path = reports_dir / "iowa_gdd_analysis.png"
+    plt.savefig(gdd_analysis_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(
-        "✓ Saved: data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/reports/iowa_gdd_analysis.png"
-    )
+    print(f"✓ Saved: {gdd_analysis_path}")
 
     print("\n✓ Time series analysis complete")
     print(f"  2023 Growing Season GDD: {gdd_2023:.0f}")

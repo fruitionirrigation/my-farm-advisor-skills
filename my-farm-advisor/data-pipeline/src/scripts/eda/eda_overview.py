@@ -1,17 +1,33 @@
 #!/usr/bin/env python3
+# pyright: reportCallIssue=false
 """
 05_eda_overview.py - Combined data overview
 
 Creates an overview of all downloaded data and saves summary statistics.
 
 Input:  All downloaded data (fields, soil, weather, CDL)
-Output: data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/summaries/iowa_field_summary.csv, summary stats
+Output: growers/iowa-demo-grower/farms/iowa-demo-farm/derived/summaries/iowa_field_summary.csv under the runtime root, summary stats
 """
 
-import os
+import sys
+from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
+
+_SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_SCRIPTS_DIR / "lib"))
+
+from lib.paths import (  # noqa: E402
+    farm_boundary_path,
+    farm_summaries_dir,
+    farm_table_path,
+    farm_weather_path,
+    shared_cdl_year_table_path,
+)
+
+_DEFAULT_GROWER = "iowa-demo-grower"
+_DEFAULT_FARM = "iowa-demo-farm"
 
 
 def main():
@@ -19,23 +35,18 @@ def main():
     print("Step 5: Data Overview")
     print("=" * 60)
 
-    os.makedirs(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/summaries", exist_ok=True
-    )
+    summaries_dir = farm_summaries_dir(_DEFAULT_GROWER, _DEFAULT_FARM)
+    summaries_dir.mkdir(parents=True, exist_ok=True)
 
     # Load all data
-    fields = gpd.read_file(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/boundary/field_boundaries.geojson"
-    )
-    soil = pd.read_csv(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/tables/iowa_10_fields_soil.csv"
-    )
+    fields = gpd.read_file(farm_boundary_path(_DEFAULT_GROWER, _DEFAULT_FARM))
+    soil = pd.read_csv(farm_table_path(_DEFAULT_GROWER, _DEFAULT_FARM, "iowa_10_fields_soil.csv"))
     weather = pd.read_csv(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/tables/iowa_weather_2021_2025.csv",
+        farm_weather_path(_DEFAULT_GROWER, _DEFAULT_FARM),
         parse_dates=["date"],
     )
-    cdl_2023 = pd.read_csv("data/my-farm-advisor/shared/cdl/derived/tables/iowa_2023_cdl.csv")
-    cdl_2024 = pd.read_csv("data/my-farm-advisor/shared/cdl/derived/tables/iowa_2024_cdl.csv")
+    cdl_2023 = pd.read_csv(shared_cdl_year_table_path(2023))
+    cdl_2024 = pd.read_csv(shared_cdl_year_table_path(2024))
 
     print("\n=== Data Summary ===")
     print(f"Fields: {len(fields)} Iowa corn belt fields")
@@ -80,13 +91,9 @@ def main():
         on="field_id",
     )
 
-    summary.to_csv(
-        "data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/summaries/iowa_field_summary.csv",
-        index=False,
-    )
-    print(
-        "\n✓ Saved: data/my-farm-advisor/growers/iowa-demo-grower/farms/iowa-demo-farm/derived/summaries/iowa_field_summary.csv"
-    )
+    output_path = summaries_dir / "iowa_field_summary.csv"
+    summary.to_csv(output_path, index=False)
+    print(f"\n✓ Saved: {output_path}")
 
     return summary
 
