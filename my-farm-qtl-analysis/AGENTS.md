@@ -10,12 +10,12 @@ Edits should stay inside `my-farm-qtl-analysis/` unless the user explicitly asks
 
 ## Start here
 
-Always read `SKILL.md` first for routing, then `README.md` for the overview. Read `PROVENANCE.md` before import, source, or update work. Then open the matching example README or script docs.
+Always read `SKILL.md` first for routing, then `README.md` for the overview. Read `PROVENANCE.md` before import, source, or update work. Open `INDEX.md`, then the matching example README or script docs.
 
 ## Local routing notes
 
 - Use this skill for GWAS, eQTL, classical QTL, QC, population structure, genomic prediction, and reporting workflows.
-- Start with `SKILL.md`, then route to `examples/mapping/`, `examples/qc/`, `examples/structure/`, `examples/prediction/`, or `examples/reporting/`.
+- Start with `SKILL.md`, then use `INDEX.md` to route to `examples/mapping/`, `examples/qc/`, `examples/structure/`, `examples/prediction/`, or `examples/reporting/`.
 - Use `scripts/check_system.py`, `scripts/install_deps.sh`, or `scripts/verify_gpu_hpc.py` only when the task needs local environment or GPU readiness checks.
 - Keep generated example `output/` artifacts untracked and reproducible from scripts.
 
