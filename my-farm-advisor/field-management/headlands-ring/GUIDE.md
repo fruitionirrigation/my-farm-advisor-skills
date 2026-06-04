@@ -6,13 +6,13 @@ author: Boreal Bytes
 tags: [geospatial, headlands, field-operations, masking, clipping, analysis]
 ---
 
-# Skill: headlands-ring
+# Workflow: headlands-ring
 
 ## Description
 
-Create headlands-ring and interior geometries from field boundaries so the edge area of a field can be measured, visualized, or excluded from analysis. This skill is intentionally generic: it can be used with soil polygons, point samples, NDVI rasters, yield zones, or any other geometry-driven workflow where the border of the field should be compared with or excluded from the interior.
+Create headlands-ring and interior geometries from field boundaries so the edge area of a field can be measured, visualized, or excluded from analysis. This workflow is intentionally generic: it can be used with soil polygons, point samples, NDVI rasters, yield zones, or any other geometry-driven workflow where the border of the field should be compared with or excluded from the interior.
 
-## When to Use This Skill
+## When to Use This Workflow
 
 - **Headlands exclusion**: Exclude edge effects from agronomic or remote-sensing analysis
 - **Operational analysis**: Quantify headlands acres and the share of a field devoted to turning or overlap zones

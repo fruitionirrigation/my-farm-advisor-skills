@@ -10,7 +10,7 @@ metadata:
   tags: [csb, usda, nass, field-boundaries, sampling, agriculture, deterministic]
 ---
 
-# CSB Field Sampling Skill
+# CSB Field Sampling Workflow
 
 _Deterministic sampling from USDA NASS Crop Sequence Boundaries._
 
@@ -27,7 +27,7 @@ _Deterministic sampling from USDA NASS Crop Sequence Boundaries._
 
 ## Dataset metadata
 
-This skill uses the existing field-boundaries sample data as its source:
+This workflow uses the existing field-boundaries sample data as its source:
 
 - **Path**: `../field-boundaries/examples/sample_2_fields.geojson`
 - **Fields**: Real Minnesota crop fields with verified boundaries
@@ -143,7 +143,7 @@ Sample outputs included:
 
 ---
 
-## Integration with Other Skills
+## Integration with Other Workflows
 
 ```python
 # Sample fields, then get satellite imagery

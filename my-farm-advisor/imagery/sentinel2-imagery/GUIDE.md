@@ -10,7 +10,7 @@ metadata:
   tags: sentinel-2, copernicus, remote-sensing, ndvi, rasterio, sentinelsat, agriculture
 ---
 
-# Sentinel-2 Imagery Skill
+# Sentinel-2 Imagery Workflow
 
 _Standard-library workflow using `sentinelsat` + `rasterio`._
 
@@ -52,13 +52,13 @@ Use the field-boundaries sample data as your AOI source:
 
 - `../field-boundaries/examples/sample_2_fields.geojson`
 
-This skill also includes a small AOI GeoJSON you can use immediately:
+This workflow also includes a small AOI GeoJSON you can use immediately:
 
 - `examples/sample_aoi.geojson`
 
 ## Example outputs (for testing)
 
-This skill includes small, non-imagery example files you can use for tests and demos:
+This workflow includes small, non-imagery example files you can use for tests and demos:
 
 - `examples/sample_ndvi_metadata.json`
 - `examples/sample_field_stats.csv`

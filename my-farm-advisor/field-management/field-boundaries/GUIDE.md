@@ -6,13 +6,13 @@ author: Boreal Bytes
 tags: [usda, nass, boundaries, geospatial, download]
 ---
 
-# Skill: field-boundaries
+# Workflow: field-boundaries
 
 ## Description
 
-Download and work with USDA NASS Crop Sequence Boundaries for agricultural analysis. This skill provides functions to download field boundary data for specific regions and crops, with built-in visualization and export capabilities.
+Download and work with USDA NASS Crop Sequence Boundaries for agricultural analysis. This workflow provides functions to download field boundary data for specific regions and crops, with built-in visualization and export capabilities.
 
-## When to Use This Skill
+## When to Use This Workflow
 
 - **Getting field boundaries**: Download polygon data for agricultural fields
 - **Regional analysis**: Filter by corn belt, great plains, or southeast
@@ -73,10 +73,10 @@ EOF
 
 ## Installation (Isolated Environment)
 
-This skill runs in an isolated environment to avoid dependency conflicts:
+This workflow runs in an isolated environment to avoid dependency conflicts:
 
 ```bash
-# Create dedicated environment for this skill
+# Create dedicated environment for this workflow
 cd .skills/field-boundaries
 uv venv .venv
 source .venv/bin/activate
@@ -199,7 +199,7 @@ Export fields to file.
 ## Composable onboarding notes
 
 - For county-specific onboarding anywhere in the U.S., use the canonical bootstrap script:
-  `python data/my-farm-advisor/scripts/ingest/bootstrap_farm_from_county.py --state-fips <SS> --county-name "<County>" ...`
+  `python "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src/scripts/ingest/bootstrap_farm_from_county.py" --state-fips <SS> --county-name "<County>" ...`
 - To add fields to an existing grower/farm, use the same script with `--append` and rerun the pipeline.
 
 ## Output Files
@@ -209,8 +209,7 @@ Export fields to file.
 
 ## Environment Variables
 
-No special environment variables required. The skill uses public USDA data.
-No special environment variables required. The skill uses public USDA data.
+No special environment variables required. The workflow uses public USDA data.
 
 ## Data Output Standards
 
