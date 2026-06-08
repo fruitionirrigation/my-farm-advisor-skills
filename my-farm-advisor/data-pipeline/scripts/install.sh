@@ -7,6 +7,13 @@ NON_INTERACTIVE=0
 FORCE_REFRESH=0
 DRY_RUN=0
 INSTALL_DEPS=1
+PREPARE_SHARED_MATURITY=0
+MATURITY_START_YEAR=2021
+MATURITY_END_YEAR=2025
+MATURITY_COVERAGE="lower48"
+MATURITY_WEATHER_BACKEND="zarr"
+MATURITY_WEATHER_TIME_STANDARD="lst"
+FORCE_SHARED_MATURITY=0
 
 usage() {
   cat <<'EOF'
@@ -28,6 +35,19 @@ Options:
                              runtime source tree.
   --dry-run                  Print planned actions without mutating files.
   --no-install-deps          Skip virtualenv/dependency installation.
+  --prepare-shared-maturity  Build shared lower48 county weather, corn RM, and
+                             soybean MG outputs after runtime install.
+  --maturity-start-year <y>  First shared maturity year. Defaults to 2021.
+  --maturity-end-year <y>    Last shared maturity year. Defaults to 2025.
+  --maturity-coverage <mode> Shared maturity coverage: lower48 or
+                             traditional-corn-belt. Defaults to lower48.
+  --maturity-weather-backend <mode>
+                             Shared maturity weather backend: zarr or api.
+                             Defaults to zarr.
+  --maturity-weather-time-standard <mode>
+                             Shared maturity weather time standard: lst or utc.
+                             Defaults to lst.
+  --force-shared-maturity    Rebuild maturity outputs even if files exist.
   -h, --help                 Show this help and exit.
 
 Environment:
@@ -126,11 +146,59 @@ while [[ $# -gt 0 ]]; do
       INSTALL_DEPS=0
       shift
       ;;
+    --prepare-shared-maturity)
+      PREPARE_SHARED_MATURITY=1
+      shift
+      ;;
+    --maturity-start-year)
+      [[ $# -ge 2 ]] || die "--maturity-start-year requires a year"
+      MATURITY_START_YEAR="$2"
+      shift 2
+      ;;
+    --maturity-end-year)
+      [[ $# -ge 2 ]] || die "--maturity-end-year requires a year"
+      MATURITY_END_YEAR="$2"
+      shift 2
+      ;;
+    --maturity-coverage)
+      [[ $# -ge 2 ]] || die "--maturity-coverage requires lower48 or traditional-corn-belt"
+      case "$2" in
+        lower48|traditional-corn-belt) MATURITY_COVERAGE="$2" ;;
+        *) die "--maturity-coverage must be lower48 or traditional-corn-belt" ;;
+      esac
+      shift 2
+      ;;
+    --maturity-weather-backend)
+      [[ $# -ge 2 ]] || die "--maturity-weather-backend requires zarr or api"
+      case "$2" in
+        zarr|api) MATURITY_WEATHER_BACKEND="$2" ;;
+        *) die "--maturity-weather-backend must be zarr or api" ;;
+      esac
+      shift 2
+      ;;
+    --maturity-weather-time-standard)
+      [[ $# -ge 2 ]] || die "--maturity-weather-time-standard requires lst or utc"
+      case "$2" in
+        lst|utc) MATURITY_WEATHER_TIME_STANDARD="$2" ;;
+        *) die "--maturity-weather-time-standard must be lst or utc" ;;
+      esac
+      shift 2
+      ;;
+    --force-shared-maturity)
+      FORCE_SHARED_MATURITY=1
+      shift
+      ;;
     *)
       die "unknown option: $1 (run with --help)"
       ;;
   esac
 done
+
+[[ "${MATURITY_START_YEAR}" =~ ^[0-9]{4}$ ]] || die "--maturity-start-year must be a four-digit year"
+[[ "${MATURITY_END_YEAR}" =~ ^[0-9]{4}$ ]] || die "--maturity-end-year must be a four-digit year"
+if (( MATURITY_START_YEAR > MATURITY_END_YEAR )); then
+  die "--maturity-start-year must be <= --maturity-end-year"
+fi
 
 if [[ "${NON_INTERACTIVE}" -eq 0 && -t 0 && -z "${CI:-}" ]]; then
   INTERACTIVE_MODE=1
@@ -436,6 +504,37 @@ install_dependencies() {
   fi
 }
 
+prepare_shared_maturity() {
+  if [[ "${PREPARE_SHARED_MATURITY}" -eq 0 ]]; then
+    return 0
+  fi
+
+  local maturity_script="${RUNTIME_SRC}/scripts/run_maturity_years_by_fips.py"
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    log "Dry run: would prepare shared maturity outputs with ${maturity_script} for ${MATURITY_START_YEAR}-${MATURITY_END_YEAR} (${MATURITY_COVERAGE})"
+    return 0
+  fi
+
+  [[ -x "${RUNTIME_VENV}/bin/python" ]] || die "runtime Python is required for --prepare-shared-maturity: ${RUNTIME_VENV}/bin/python"
+  [[ -f "${maturity_script}" ]] || die "shared maturity script missing: ${maturity_script}"
+
+  local command=(
+    "${RUNTIME_VENV}/bin/python"
+    "${maturity_script}"
+    --start-year "${MATURITY_START_YEAR}"
+    --end-year "${MATURITY_END_YEAR}"
+    --coverage "${MATURITY_COVERAGE}"
+    --weather-backend "${MATURITY_WEATHER_BACKEND}"
+    --weather-time-standard "${MATURITY_WEATHER_TIME_STANDARD}"
+  )
+  if [[ "${FORCE_SHARED_MATURITY}" -eq 1 ]]; then
+    command+=(--force)
+  fi
+
+  log "Preparing shared maturity outputs for ${MATURITY_START_YEAR}-${MATURITY_END_YEAR} (${MATURITY_COVERAGE}, ${MATURITY_WEATHER_BACKEND})"
+  DATA_PIPELINE_DATA_ROOT="${RESOLVED_ROOT}" DATA_PIPELINE_VENV_DIR="${RUNTIME_VENV}" "${command[@]}"
+}
+
 case "${PERSIST_MODE}" in
   user) persist_user_env ;;
   none) log "Skipping user-level persistence because --persist none was passed" ;;
@@ -445,5 +544,6 @@ esac
 with_runtime_lock
 write_source_locator
 install_dependencies
+prepare_shared_maturity
 
 log "Install complete. Runtime base: ${RUNTIME_BASE}"

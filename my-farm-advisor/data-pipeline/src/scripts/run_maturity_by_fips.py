@@ -9,6 +9,10 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from bootstrap_runtime import ensure_runtime_environment
+
+ensure_runtime_environment()
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
 sys.path.insert(0, str(_SCRIPTS_DIR / "lib"))
