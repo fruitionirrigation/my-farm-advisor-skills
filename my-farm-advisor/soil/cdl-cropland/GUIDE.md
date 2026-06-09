@@ -35,7 +35,7 @@ Sample data is included in the `examples/` directory:
 
 - `examples/sample_cdl_2_fields.csv` - CDL crop classifications for 2 Minnesota fields (2020-2024)
 
-These match the 2 fields from the `field-boundaries` skill (`examples/sample_2_fields.geojson`).
+These match field-boundary examples from `my-farm-advisor/field-management/field-boundaries/examples/`.
 
 ```python
 import pandas as pd
@@ -66,7 +66,7 @@ from collections import Counter
 from pathlib import Path
 
 # Load field boundaries (from field-boundaries skill)
-fields = gpd.read_file('../field-boundaries/examples/sample_2_fields.geojson')
+fields = gpd.read_file('my-farm-advisor/field-management/field-boundaries/examples/real_10_fields_iowa.geojson')
 
 year = 2023
 state_fips = '29'  # Example only; set this to the farm state FIPS
@@ -76,7 +76,7 @@ state_fips = '29'  # Example only; set this to the farm state FIPS
 cdl_url = (
     f'https://nassgeodata.gmu.edu/nass_data_cache/byfips/CDL_{year}_{state_fips}.tif'
 )
-cdl_path = Path(f'data/my-farm-advisor/CDL_{year}_{state_fips}.tif')
+cdl_path = Path(f'${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared/cdl/raw/CDL_{year}_{state_fips}.tif')
 cdl_path.parent.mkdir(parents=True, exist_ok=True)
 
 if not cdl_path.exists():
@@ -124,7 +124,7 @@ for r in results:
 import pandas as pd
 df = pd.DataFrame(results)
 print(df[['field_id', 'year', 'crop_code', 'crop_name', 'dominant_pct']])
-df.to_csv(f'data/my-farm-advisor/shared/cdl/derived/tables/cdl_{year}_fields.csv', index=False)
+df.to_csv(f'${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared/cdl/derived/tables/cdl_{year}_fields.csv', index=False)
 EOF
 ```
 
@@ -134,7 +134,7 @@ This workflow runs in an isolated environment to avoid dependency conflicts:
 
 ```bash
 # Create dedicated environment for this workflow
-cd .skills/cdl-cropland
+cd my-farm-advisor/soil/cdl-cropland
 uv venv .venv
 source .venv/bin/activate
 
@@ -188,10 +188,10 @@ from collections import Counter
 from pathlib import Path
 
 # Load field boundaries (from field-boundaries skill)
-fields = gpd.read_file('.skills/field-boundaries/examples/sample_2_fields.geojson')
+fields = gpd.read_file('my-farm-advisor/field-management/field-boundaries/examples/real_10_fields_iowa.geojson')
 
 year = 2023
-cdl_path = Path(f'data/my-farm-advisor/CDL_{year}_27.tif')
+cdl_path = Path(f'${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared/cdl/raw/CDL_{year}_27.tif')
 
 with rasterio.open(cdl_path) as src:
     fields_proj = fields.to_crs(src.crs)
@@ -216,7 +216,7 @@ years = [2020, 2021, 2022, 2023, 2024]
 all_results = []
 
 for year in years:
-    cdl_path = f'data/my-farm-advisor/CDL_{year}_27.tif'
+    cdl_path = f'${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared/cdl/raw/CDL_{year}_27.tif'
     # ... extract crops per field (see Quick Start) ...
     # all_results.extend(year_results)
 
@@ -235,8 +235,8 @@ for field_id, group in df.groupby('field_id'):
 import geopandas as gpd
 from rasterstats import zonal_stats
 
-fields = gpd.read_file('.skills/field-boundaries/examples/sample_2_fields.geojson')
-cdl_path = 'data/my-farm-advisor/CDL_2023_27.tif'
+fields = gpd.read_file('my-farm-advisor/field-management/field-boundaries/examples/real_10_fields_iowa.geojson')
+cdl_path = '${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared/cdl/raw/CDL_2023_27.tif'
 
 # Get pixel counts per crop code within each field
 stats = zonal_stats(
