@@ -1,6 +1,6 @@
 ---
 name: nasa-power-weather
-description: Download NASA POWER daily weather data for agricultural field locations. Queries the free REST API for temperature, precipitation, solar radiation, humidity, and wind. Calculates Growing Degree Days (GDD). Use when the user needs historical weather for crop modeling, irrigation planning, or climate analysis.
+description: Download NASA POWER daily weather data for agricultural field locations. The data-pipeline farm workflow samples public S3 Zarr stores at field centroids by default, with the REST API retained for small/debug pulls. Calculates Growing Degree Days (GDD). Use when the user needs historical weather for crop modeling, irrigation planning, or climate analysis.
 version: 1.0.0
 author: Boreal Bytes
 tags: [nasa, power, weather, climate, agriculture, api, gdd]
@@ -10,11 +10,12 @@ tags: [nasa, power, weather, climate, agriculture, api, gdd]
 
 ## Description
 
-Download and analyze daily weather data from NASA POWER (Prediction of Worldwide Energy Resources) for agricultural field locations. Field-level examples use the free REST API. Shared county/L2 geoadmin rebuilds should use NASA POWER's public S3 Zarr stores to avoid large batches of point API requests.
+Download and analyze daily weather data from NASA POWER (Prediction of Worldwide Energy Resources) for agricultural field locations. The deterministic data-pipeline farm workflow uses NASA POWER's public S3 Zarr stores by default at actual field centroids. The free REST API remains useful for small examples and debugging. Shared county/L2 geoadmin rebuilds also use the public S3 Zarr stores to avoid large batches of point API requests.
 
 This workflow teaches agents to:
 
-- Query the NASA POWER REST API directly with `requests` for small field-level pulls
+- Sample NASA POWER S3 Zarr stores at field centroids for default farm weather ingestion
+- Query the NASA POWER REST API directly with `requests` for small field-level or debug pulls
 - Use NASA POWER S3 Zarr stores for shared county/L2 geoadmin bulk weather tables
 - Parse the JSON response into `pandas` DataFrames
 - Calculate Growing Degree Days (GDD) for crop development tracking
@@ -27,7 +28,7 @@ This workflow teaches agents to:
 - **Historical weather retrieval**: Get daily temperature, precipitation, solar radiation for specific coordinates
 - **Crop modeling inputs**: Obtain GDD, accumulated precipitation, solar radiation totals
 - **Multi-year climate analysis**: Compare growing seasons across 2020-2024
-- **Field-level weather**: Extract weather at field centroids from boundary GeoJSON files
+- **Field-level weather**: Extract weather at field centroids from boundary GeoJSON files, using Zarr by default in the data pipeline
 - **County/L2 shared weather**: Build reusable weather-by-FIPS tables from S3 Zarr instead of the point API
 - **Irrigation planning**: Analyze precipitation deficits and evapotranspiration drivers
 
@@ -64,6 +65,24 @@ print(weather.columns.tolist())
 ```
 
 ## Quick Start
+
+The data-pipeline default reads from NASA POWER S3 Zarr at field centroids and writes the canonical farm and per-field weather CSVs for 2021-2025 using local solar time:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/run_farm_pipeline.py \
+  --grower-slug il-dekalb-grower \
+  --farm-slug dekalb-demo-farm \
+  --farm-name "DeKalb Demo Farm" \
+  --weather-backend zarr \
+  --weather-start-year 2021 \
+  --weather-end-year 2025 \
+  --weather-time-standard lst
+```
+
+Use the REST API for a single-coordinate smoke test or when explicitly debugging the point API path:
 
 ```bash
 # Download weather for a single coordinate (no dependencies beyond requests/pandas)
@@ -164,7 +183,7 @@ The API is free and requires no key. NASA asks that users:
 - Cache results locally — the data does not change retroactively
 - Use the `AG` community for agricultural parameters
 
-For shared L2/county rebuilds, prefer the data-pipeline Zarr backend instead of the point API. The runtime initializer can build the supported 2021-2025 lower48 maturity baseline in one pass:
+For farm pipelines and shared L2/county rebuilds, prefer the data-pipeline Zarr backend instead of the point API. The runtime initializer can build the supported 2021-2025 lower48 maturity baseline in one pass:
 
 ```bash
 cd my-farm-advisor/data-pipeline
@@ -192,13 +211,13 @@ python scripts/run_maturity_by_fips.py \
   --weather-time-standard lst
 ```
 
-The Zarr backend reads meteorology from `merra2/temporal/power_merra2_daily_temporal_lst.zarr` and solar radiation from `syn1deg/temporal/power_syn1deg_daily_temporal_lst.zarr`, fills missing solar cells from the alternate POWER Zarr time-standard when available, then writes the same `daily_weather_by_fips.parquet` schema under `${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared/weather/nasa-power/<year>/`.
+The Zarr backend reads meteorology from `merra2/temporal/power_merra2_daily_temporal_lst.zarr` and solar radiation from `syn1deg/temporal/power_syn1deg_daily_temporal_lst.zarr`, fills missing solar cells from the alternate POWER Zarr time-standard when available, converts solar radiation to the REST-compatible `MJ/m^2/day` unit, and writes the existing farm weather CSV or shared `daily_weather_by_fips.parquet` schema.
 
 ## Usage Examples
 
 ### Example 1: Download Weather for Field Boundaries
 
-Read field centroids from GeoJSON (from `field-boundaries` skill) and query weather for each:
+Read field centroids from GeoJSON (from `field-boundaries` skill) and query the REST API for each. Use this for examples and small debug pulls; use `scripts/run_farm_pipeline.py --weather-backend zarr` for normal farm ingestion:
 
 ```python
 """Download NASA POWER weather for fields from a GeoJSON file."""
@@ -399,8 +418,8 @@ Common base temperatures:
 
 ## Notes
 
-- Weather is queried at field **centroids** — for large fields the 0.5° grid may span multiple cells
-- Missing values from the API are encoded as `-999.0`; replace with `None`/`NaN`
+- Farm pipeline weather is sampled at field **centroids** — for large fields the 0.5° POWER grid may span multiple cells
+- Missing values from the API and Zarr stores are normalized from `-999.0` to `None`/`NaN`
 - Data availability is typically 1981-present with ~2-month lag
 - The `AG` community includes bias-corrected precipitation (`PRECTOTCORR`)
 - For sub-daily data, use the `temporal/hourly` endpoint instead

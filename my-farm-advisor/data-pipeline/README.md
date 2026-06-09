@@ -34,6 +34,31 @@ The installer creates and refreshes the runtime tree under:
 
 Generated outputs, manifests, reports, logs, and downloaded payloads belong under the runtime base, for example `${DATA_PIPELINE_DATA_ROOT}/data-pipeline/growers` and `${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared`. The committed checkout remains the source for installer scripts and baseline `src/` files, but runtime execution happens from the copied source.
 
+Farm weather now uses NASA POWER's public S3 Zarr stores by default at actual field centroids. The default farm weather controls are `--weather-backend zarr`, `--weather-start-year 2021`, `--weather-end-year 2025`, and `--weather-time-standard lst`. The output path and CSV schema stay compatible with existing reports:
+
+```text
+${DATA_PIPELINE_DATA_ROOT}/data-pipeline/growers/<grower>/farms/<farm>/derived/tables/<farm>_weather_2021_2025.csv
+${DATA_PIPELINE_DATA_ROOT}/data-pipeline/growers/<grower>/farms/<farm>/fields/<field>/weather/daily_weather.csv
+```
+
+Run or override those defaults from the runtime source copy:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/run_farm_pipeline.py \
+  --grower-slug il-dekalb-grower \
+  --farm-slug dekalb-demo-farm \
+  --farm-name "DeKalb Demo Farm" \
+  --weather-backend zarr \
+  --weather-start-year 2021 \
+  --weather-end-year 2025 \
+  --weather-time-standard lst
+```
+
+Use `--weather-backend api` only when explicitly debugging the legacy NASA POWER point API path for small field sets.
+
 Shared county weather for maturity-by-FIPS uses NASA POWER's public S3 Zarr stores by default instead of issuing one `power.larc.nasa.gov` point API request per county grid cell. This avoids API rate-limit failures for L2 geoadmin scopes while preserving the existing output path and schema:
 
 ```text
@@ -69,7 +94,7 @@ python scripts/run_maturity_by_fips.py \
   --weather-time-standard lst
 ```
 
-Use `--weather-backend api` only when explicitly debugging the legacy NASA POWER point API path.
+Use `--weather-backend api` only when explicitly debugging the legacy NASA POWER point API path for county weather.
 
 To persist the default data root for future login sessions, write the user environment file and still export the variable in the current shell before running commands:
 

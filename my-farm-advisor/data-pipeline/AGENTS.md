@@ -65,6 +65,35 @@ cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
   scripts/run_farm_pipeline.py --structure-test
 ```
 
+Run the farm pipeline with default field-location NASA POWER weather. Farm weather samples NASA POWER S3 Zarr at each field centroid, writes the existing farm weather CSV schema, and stages per-field `weather/daily_weather.csv` files:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/run_farm_pipeline.py \
+  --grower-slug il-dekalb-grower \
+  --farm-slug dekalb-demo-farm \
+  --farm-name "DeKalb Demo Farm" \
+  --weather-backend zarr \
+  --weather-start-year 2021 \
+  --weather-end-year 2025 \
+  --weather-time-standard lst
+```
+
+Use the legacy NASA POWER point API only for small debugging pulls:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/run_farm_pipeline.py \
+  --grower-slug il-dekalb-grower \
+  --farm-slug dekalb-demo-farm \
+  --weather-backend api \
+  --force
+```
+
 Force-refresh runtime source for non-interactive CI or smoke tests:
 
 ```bash
@@ -87,6 +116,8 @@ cd ../..
 - Safe data seeding uses `rsync -r --no-times --ignore-existing` and must not overwrite or delete existing files.
 - Upgrade data seeding uses `rsync -r --no-times --checksum` and must not delete existing files.
 - Keep `src/` shaped like the canonical runtime tree with `growers/`, `shared/`, and `scripts/`.
+- Farm weather defaults are `AG_WEATHER_BACKEND=zarr`, `AG_WEATHER_START_YEAR=2021`, `AG_WEATHER_END_YEAR=2025`, and `AG_WEATHER_TIME_STANDARD=lst`. Use CLI arguments first, or set those environment variables for runtime scripts that do not accept CLI arguments directly.
+- Do not commit `.env` files for data-pipeline defaults. Persist only `DATA_PIPELINE_DATA_ROOT` through the documented `environment.d` file; weather controls should remain explicit CLI arguments or current-shell exports.
 
 ## Local validation
 
