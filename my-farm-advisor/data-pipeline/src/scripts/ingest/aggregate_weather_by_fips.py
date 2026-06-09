@@ -20,6 +20,9 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
 sys.path.insert(0, str(_SCRIPTS_DIR / "lib"))
 
+from nasa_power import WEATHER_COLUMNS as _WEATHER_COLUMNS
+from nasa_power import assign_power_grid, build_zarr_grid_weather
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -60,29 +63,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-_WEATHER_COLUMNS = [
-    "T2M",
-    "T2M_MAX",
-    "T2M_MIN",
-    "PRECTOTCORR",
-    "ALLSKY_SFC_SW_DWN",
-    "RH2M",
-    "WS10M",
-]
-_MERRA2_COLUMNS = ["T2M", "T2M_MAX", "T2M_MIN", "PRECTOTCORR", "RH2M", "WS10M"]
-_SYN1DEG_COLUMNS = ["ALLSKY_SFC_SW_DWN"]
-_ZARR_STORES = {
-    "merra2": {
-        "lst": "https://nasa-power.s3.us-west-2.amazonaws.com/merra2/temporal/power_merra2_daily_temporal_lst.zarr",
-        "utc": "https://nasa-power.s3.us-west-2.amazonaws.com/merra2/temporal/power_merra2_daily_temporal_utc.zarr",
-    },
-    "syn1deg": {
-        "lst": "https://nasa-power.s3.us-west-2.amazonaws.com/syn1deg/temporal/power_syn1deg_daily_temporal_lst.zarr",
-        "utc": "https://nasa-power.s3.us-west-2.amazonaws.com/syn1deg/temporal/power_syn1deg_daily_temporal_utc.zarr",
-    },
-}
-
-
 def _runtime_relative(path: Path, runtime_base: Path) -> str:
     try:
         return str(path.resolve(strict=False).relative_to(runtime_base))
@@ -96,70 +76,6 @@ def _paths_module() -> Any:
 
 def _maturity_module() -> Any:
     return importlib.import_module("maturity_by_fips")
-
-
-def _import_zarr_stack() -> tuple[Any, Any]:
-    try:
-        import fsspec
-        import xarray as xr
-    except ImportError as exc:
-        raise RuntimeError(
-            "NASA POWER Zarr backend requires xarray, zarr, and fsspec[http]; "
-            "rerun the data-pipeline installer to refresh dependencies or use "
-            "--weather-backend api"
-        ) from exc
-    return fsspec, xr
-
-
-def _query_zarr_grid_weather(
-    grid_lookup: pd.DataFrame,
-    *,
-    year: int,
-    collection: str,
-    parameters: list[str],
-    time_standard: str,
-) -> pd.DataFrame:
-    if grid_lookup.empty:
-        return pd.DataFrame()
-    fsspec, xr = _import_zarr_stack()
-    store_url = _ZARR_STORES[collection][time_standard]
-    store = fsspec.get_mapper(store_url)
-    ds = xr.open_zarr(store, consolidated=True, chunks=None)
-    try:
-        missing = [parameter for parameter in parameters if parameter not in ds.data_vars]
-        if missing:
-            raise RuntimeError(f"NASA POWER Zarr store missing variables: {missing}")
-        grid_keys = grid_lookup["grid_key"].astype(str).to_numpy()
-        lat_indexer = xr.DataArray(
-            grid_lookup["grid_lat"].astype(float).to_numpy(),
-            dims="grid",
-            coords={"grid": grid_keys},
-        )
-        lon_indexer = xr.DataArray(
-            grid_lookup["grid_lon"].astype(float).to_numpy(),
-            dims="grid",
-            coords={"grid": grid_keys},
-        )
-        subset = (
-            ds[parameters]
-            .sel(time=slice(f"{year}-01-01", f"{year}-12-31"))
-            .sel(lat=lat_indexer, lon=lon_indexer, method="nearest")
-            .load()
-        )
-        frame = cast(pd.DataFrame, subset.to_dataframe().reset_index())
-    finally:
-        ds.close()
-
-    if frame.empty:
-        return frame
-    frame = cast(pd.DataFrame, frame.rename(columns={"time": "date", "grid": "grid_key"}))
-    frame["grid_key"] = frame["grid_key"].astype(str)
-    frame["date"] = pd.to_datetime(frame["date"])
-    frame = frame.drop(columns=[column for column in ["lat", "lon"] if column in frame.columns])
-    for parameter in parameters:
-        if parameter in frame.columns:
-            frame[parameter] = frame[parameter].replace(-999.0, pd.NA)
-    return cast(pd.DataFrame, frame[["date", "grid_key", *parameters]].copy())
 
 
 def _query_grid_weather(
@@ -252,15 +168,9 @@ def _query_grid_weather(
 
 
 def _assign_power_grid(county_lookup: pd.DataFrame) -> pd.DataFrame:
-    lookup = county_lookup.copy()
-    lookup["grid_lat"] = (lookup["centroid_lat"] / 0.5).round() * 0.5
-    lookup["grid_lon"] = (lookup["centroid_lon"] / 0.625).round() * 0.625
-    lookup["grid_key"] = (
-        lookup["grid_lat"].map("{:.3f}".format)
-        + ":"
-        + lookup["grid_lon"].map("{:.3f}".format)
+    return assign_power_grid(
+        county_lookup, lat_column="centroid_lat", lon_column="centroid_lon"
     )
-    return cast(pd.DataFrame, lookup)
 
 
 def _build_api_county_weather(
@@ -384,75 +294,13 @@ def _build_zarr_county_weather(
         .reset_index(drop=True),
     )
     total_grid_count = int(len(grid_lookup))
-    merra2_weather = _query_zarr_grid_weather(
+    grid_weather = build_zarr_grid_weather(
         grid_lookup,
         year=year,
-        collection="merra2",
-        parameters=_MERRA2_COLUMNS,
         time_standard=time_standard,
     )
-    if merra2_weather.empty:
+    if grid_weather.empty:
         raise RuntimeError("No county weather data retrieved from NASA POWER Zarr")
-
-    syn1deg_weather = _query_zarr_grid_weather(
-        grid_lookup,
-        year=year,
-        collection="syn1deg",
-        parameters=_SYN1DEG_COLUMNS,
-        time_standard=time_standard,
-    )
-    if not syn1deg_weather.empty:
-        if syn1deg_weather["ALLSKY_SFC_SW_DWN"].isna().any():
-            alternate_time_standard = "utc" if time_standard == "lst" else "lst"
-            alternate_solar = _query_zarr_grid_weather(
-                grid_lookup,
-                year=year,
-                collection="syn1deg",
-                parameters=_SYN1DEG_COLUMNS,
-                time_standard=alternate_time_standard,
-            )
-            if not alternate_solar.empty:
-                alternate_solar = cast(
-                    pd.DataFrame,
-                    alternate_solar.rename(
-                        columns={"ALLSKY_SFC_SW_DWN": "_ALLSKY_SFC_SW_DWN_FALLBACK"}
-                    ),
-                )
-                syn1deg_weather = cast(
-                    pd.DataFrame,
-                    syn1deg_weather.merge(
-                        alternate_solar[["date", "grid_key", "_ALLSKY_SFC_SW_DWN_FALLBACK"]],
-                        on=["date", "grid_key"],
-                        how="left",
-                    ),
-                )
-                syn1deg_weather["ALLSKY_SFC_SW_DWN"] = syn1deg_weather[
-                    "ALLSKY_SFC_SW_DWN"
-                ].fillna(syn1deg_weather["_ALLSKY_SFC_SW_DWN_FALLBACK"])
-                syn1deg_weather = cast(
-                    pd.DataFrame,
-                    syn1deg_weather.drop(columns=["_ALLSKY_SFC_SW_DWN_FALLBACK"]),
-                )
-        # The REST API returns daily shortwave radiation in MJ/m^2/day. The Zarr
-        # source stores the same variable in W m-2, so convert for compatibility.
-        solar_wm2 = cast(
-            pd.Series,
-            pd.to_numeric(syn1deg_weather["ALLSKY_SFC_SW_DWN"], errors="coerce"),
-        )
-        syn1deg_weather["ALLSKY_SFC_SW_DWN"] = solar_wm2 * 0.0864
-        grid_weather = cast(
-            pd.DataFrame,
-            merra2_weather.merge(syn1deg_weather, on=["date", "grid_key"], how="left"),
-        )
-    else:
-        grid_weather = merra2_weather.copy()
-        grid_weather["ALLSKY_SFC_SW_DWN"] = pd.NA
-
-    grid_weather = cast(
-        pd.DataFrame,
-        grid_weather.merge(grid_lookup, on="grid_key", how="inner"),
-    )
-    grid_weather["year"] = grid_weather["date"].dt.year.astype(int)
     county_weather = cast(
         pd.DataFrame,
         scoped_lookup.merge(
