@@ -16,6 +16,7 @@ Use this package for field-level DEM source policy, terrain product contracts, p
 
 ## Future Integration Points
 
+- Runtime CLI: `data-pipeline/src/scripts/ingest/download_dem_terrain.py`, run from the installed data-pipeline source copy with `--context-meters 20` and explicit `--allow-live-downloads` only when live provider access is intended.
 - Source adapters should implement discovery, download, cache, prepare, and provenance behavior without changing the documented source hierarchy.
 - Raster processors should write runtime products named by `terrain_contract.py` and record source warnings from `source_resolver.py`.
 - Ingest CLI work should write under `${DATA_PIPELINE_DATA_ROOT}/data-pipeline`, not inside this checkout.

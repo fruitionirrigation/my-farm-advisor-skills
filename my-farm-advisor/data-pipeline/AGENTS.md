@@ -64,14 +64,14 @@ DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
 EOF
 ```
 
-Smoke install into a temporary external root without writing repo-local `data/`:
+Smoke source-copy install into a temporary external root without writing repo-local `data/`. This intentionally skips dependency and venv creation, so do not invoke `.venv/bin/python` from this no-deps root:
 
 ```bash
 tmp_root="$(mktemp -d)"
 DATA_PIPELINE_DATA_ROOT="$tmp_root" ./scripts/install.sh --non-interactive --force-refresh --no-install-deps
 ```
 
-Run a structure test from the runtime source copy:
+Run a structure test from a runtime source copy after the normal installer has created the runtime venv:
 
 ```bash
 export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
@@ -135,6 +135,35 @@ cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
   --weather-backend api \
   --force
 ```
+
+Run DEM terrain only when explicitly requested. It is a guarded follow-on step, not part of the default farm pipeline or structure test. Dry-run plans paths and sources without raster writes, downloads, or live services:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/ingest/download_dem_terrain.py \
+  --grower il-dekalb-grower \
+  --farm dekalb-demo-farm \
+  --context-meters 20 \
+  --dry-run
+```
+
+For a safe full-package DEM smoke, prefer offline fixtures:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/ingest/download_dem_terrain.py \
+  --grower il-dekalb-grower \
+  --farm dekalb-demo-farm \
+  --context-meters 20 \
+  --offline-fixtures \
+  --limit-fields 1
+```
+
+Live DEM discovery and provider downloads require `--allow-live-downloads`. Do not add DEM to `run_farm_pipeline.py` unless it is guarded by an explicit operator flag such as `--include-dem-terrain`; if you do add that guard later, pass the context buffer through as `AG_CONTEXT_METERS=20` or an equivalent CLI value, and keep `--structure-test` no-download and DEM-dependency-free.
 
 Force-refresh runtime source for non-interactive CI or smoke tests:
 

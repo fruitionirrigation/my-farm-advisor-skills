@@ -133,6 +133,55 @@ python scripts/run_maturity_by_fips.py \
 
 Use `--weather-backend api` only when explicitly debugging the legacy NASA POWER point API path for county weather.
 
+## Optional DEM terrain step
+
+DEM terrain is not part of the default farm pipeline. Run it as an explicit follow-on step from the runtime source copy when a farm needs elevation, slope, aspect, hillshade, curvature, wetness, depression, relative elevation, or erosion-proxy products. The default dry-run mode plans field paths and sources only. It does not write rasters, download DEM tiles, or require live provider services.
+
+Safe temp-root install and dry-run check. This creates the runtime venv before invoking `.venv/bin/python`:
+
+```bash
+tmp_root="$(mktemp -d)"
+export DATA_PIPELINE_DATA_ROOT="$tmp_root"
+cd my-farm-advisor/data-pipeline
+./scripts/install.sh --non-interactive --force-refresh
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/ingest/download_dem_terrain.py \
+  --grower il-dekalb-grower \
+  --farm dekalb-demo-farm \
+  --context-meters 20 \
+  --dry-run
+```
+
+For a no-network full-package smoke, use offline fixtures. This writes only under the external runtime root and creates tiny synthetic DEM inputs in the runtime cache:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/ingest/download_dem_terrain.py \
+  --grower il-dekalb-grower \
+  --farm dekalb-demo-farm \
+  --context-meters 20 \
+  --offline-fixtures \
+  --limit-fields 1
+```
+
+Live DEM provider discovery or downloads are disabled unless you opt in. Add `--allow-live-downloads` only when the operator expects network access, provider availability, and downloaded DEM cache writes under `${DATA_PIPELINE_DATA_ROOT}/data-pipeline/shared/dem/`:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/ingest/download_dem_terrain.py \
+  --grower il-dekalb-grower \
+  --farm dekalb-demo-farm \
+  --context-meters 20 \
+  --allow-live-downloads
+```
+
+If a future orchestrator wraps this command, keep it guarded behind an explicit switch such as `--include-dem-terrain` and pass `AG_CONTEXT_METERS=20` or the matching CLI value through to `download_dem_terrain.py`. The existing `scripts/run_farm_pipeline.py --structure-test` path must remain a no-download structure check and must not import DEM-only dependencies or contact live services.
+
 To persist the default data root for future login sessions, write the user environment file and still export the variable in the current shell before running commands:
 
 ```bash

@@ -22,10 +22,12 @@ Use this nested skill for field-scale elevation and terrain work in My Farm Advi
 - Read [INDEX.md](INDEX.md) for file-level navigation inside this package.
 - Open [`src/dem_terrain/terrain_contract.py`](src/dem_terrain/terrain_contract.py) for product names, path templates, and manifest fields.
 - Open [`src/dem_terrain/source_resolver.py`](src/dem_terrain/source_resolver.py) for adapter ids, candidate records, ranking policy, and fallback warnings.
+- Use the runtime CLI at `data-pipeline/src/scripts/ingest/download_dem_terrain.py` from the installed data-pipeline source copy when a farm needs actual DEM terrain products.
 - Read [PROVENANCE.md](PROVENANCE.md) before adding or changing elevation sources.
 
 ## Routing Notes
 
 - Invoke this skill when the request mentions DEM, elevation, slope, aspect, hillshade, curvature, terrain wetness, flow accumulation, depressions, relative elevation, erosion proxies, or DEM source provenance.
 - Use it for U.S. 3DEP, Illinois ILHMP/ISGS, NASADEM, Copernicus GLO-30, ALOS AW3D30, optional OpenTopography, and Open-Elevation research-only policy questions.
+- Keep execution explicit: dry-run is no-download planning, offline fixtures are the safe full-package smoke, and live downloads require `--allow-live-downloads`.
 - Do not call hosted Open-Elevation APIs and do not commit generated DEM rasters, previews, caches, summaries, manifests, or downloaded tiles.

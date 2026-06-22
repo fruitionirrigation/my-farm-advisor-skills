@@ -19,6 +19,42 @@ Generated and downloaded DEM assets are runtime-only and must stay out of Git. D
 
 The contract module exposes these as string templates only. Importing `dem_terrain` is safe in a clean checkout and does not require `DATA_PIPELINE_DATA_ROOT` to exist.
 
+## Runtime CLI
+
+The data-pipeline runtime exposes DEM terrain ingestion at `scripts/ingest/download_dem_terrain.py` after `my-farm-advisor/data-pipeline/scripts/install.sh` copies the source tree into `${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src`. Run it from the runtime source copy, not from the skill checkout.
+
+Temp-root install plus no-download dry run. This creates the runtime venv before invoking `.venv/bin/python`:
+
+```bash
+tmp_root="$(mktemp -d)"
+export DATA_PIPELINE_DATA_ROOT="$tmp_root"
+cd my-farm-advisor/data-pipeline
+./scripts/install.sh --non-interactive --force-refresh
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/ingest/download_dem_terrain.py \
+  --grower il-dekalb-grower \
+  --farm dekalb-demo-farm \
+  --context-meters 20 \
+  --dry-run
+```
+
+Dry-run is the safe default planning path: no raster writes, no DEM downloads, and no live provider services. For a no-network full-package smoke, use `--offline-fixtures` so the command creates tiny synthetic source DEM inputs inside the external runtime cache:
+
+```bash
+export DATA_PIPELINE_DATA_ROOT=/absolute/path/to/my-farm-advisor-runtime
+cd "${DATA_PIPELINE_DATA_ROOT}/data-pipeline/src"
+"${DATA_PIPELINE_DATA_ROOT}/data-pipeline/.venv/bin/python" \
+  scripts/ingest/download_dem_terrain.py \
+  --grower il-dekalb-grower \
+  --farm dekalb-demo-farm \
+  --context-meters 20 \
+  --offline-fixtures \
+  --limit-fields 1
+```
+
+Live provider discovery or downloads require explicit operator opt-in with `--allow-live-downloads`. Without that flag, runtime mode fails safely when no cached source raster is available. Any farm-pipeline orchestration must keep DEM behind an explicit switch such as `--include-dem-terrain` and pass `AG_CONTEXT_METERS=20` or the matching `--context-meters 20` value to the CLI.
+
 ## Raster clipping primitives
 
 `src/dem_terrain/raster_processing.py` provides the v1 local raster primitive for already-available DEM tiles. It selects a projected analysis CRS from the field centroid, buffers the field in meters after projection, transforms the buffered bounds to source CRS for tile reads, mosaics source tiles in source CRS, reprojects once to the analysis CRS, and writes a compressed/tiled GeoTIFF through an atomic temporary file. High-latitude fields outside the UTM valid range use explicit polar stereographic fallbacks with warnings rather than silent CRS guessing.
