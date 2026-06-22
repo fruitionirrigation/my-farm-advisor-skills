@@ -1,9 +1,9 @@
 """Source resolver interfaces and deterministic DEM candidate ranking.
 
 This module is intentionally stdlib-only and import-safe. It defines the
-interfaces, data records, placeholder adapter classes, and source-selection
-policy that later provider-specific tasks will implement. It does not discover,
-download, prepare, cache, or write DEM rasters.
+interfaces, data records, adapter classes, and source-selection
+policy. It does not prepare, cache, or write DEM rasters; provider discovery
+returns metadata references unless an explicit adapter later downloads runtime assets.
 """
 
 from __future__ import annotations
@@ -243,6 +243,7 @@ class SourceAdapter:
 
 from .usgs_tnm import USGSTNMAdapter
 from .illinois_ilhmp import IllinoisILHMPAdapter
+from .global_adapters import ALOSAW3D30Adapter, CopernicusGLO30Adapter, NASADEMAdapter
 
 
 class RegisteredRegionalAdapter(SourceAdapter):
@@ -251,26 +252,6 @@ class RegisteredRegionalAdapter(SourceAdapter):
     adapter_id = ADAPTER_REGISTERED_REGIONAL
     adapter_name = "Registered national/regional DEM provider"
 
-
-class NASADEMAdapter(SourceAdapter):
-    """Placeholder for NASADEM global source discovery."""
-
-    adapter_id = ADAPTER_NASADEM
-    adapter_name = "NASADEM"
-
-
-class CopernicusGLO30Adapter(SourceAdapter):
-    """Placeholder for Copernicus GLO-30 DSM source discovery."""
-
-    adapter_id = ADAPTER_COPERNICUS_GLO30
-    adapter_name = "Copernicus GLO-30 DSM"
-
-
-class ALOSAW3D30Adapter(SourceAdapter):
-    """Placeholder for ALOS AW3D30 DSM source discovery."""
-
-    adapter_id = ADAPTER_ALOS_AW3D30
-    adapter_name = "ALOS AW3D30 DSM"
 
 
 class SRTMCompatibleAdapter(SourceAdapter):
@@ -300,7 +281,7 @@ ADAPTER_CLASSES = (
 
 
 def instantiate_default_adapters() -> tuple[SourceAdapter, ...]:
-    """Instantiate all placeholder adapters without network or credentials."""
+    """Instantiate all default adapters without network or credentials."""
 
     return tuple(adapter_class() for adapter_class in ADAPTER_CLASSES)
 
