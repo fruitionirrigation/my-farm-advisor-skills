@@ -191,12 +191,24 @@ def field_satellite_dir(grower_slug: str, farm_slug: str, field_slug: str) -> Pa
     return field_dir(grower_slug, farm_slug, field_slug) / "satellite"
 
 
+def field_terrain_dir(grower_slug: str, farm_slug: str, field_slug: str) -> Path:
+    return field_dir(grower_slug, farm_slug, field_slug) / "terrain"
+
+
+def field_dem_dir(grower_slug: str, farm_slug: str, field_slug: str) -> Path:
+    return field_terrain_dir(grower_slug, farm_slug, field_slug) / "dem"
+
+
 def field_manifest_dir(grower_slug: str, farm_slug: str, field_slug: str) -> Path:
     return field_dir(grower_slug, farm_slug, field_slug) / "manifests"
 
 
 def field_derived_dir(grower_slug: str, farm_slug: str, field_slug: str) -> Path:
     return field_dir(grower_slug, farm_slug, field_slug) / "derived"
+
+
+def field_terrain_derived_dir(grower_slug: str, farm_slug: str, field_slug: str) -> Path:
+    return field_derived_dir(grower_slug, farm_slug, field_slug) / "terrain"
 
 
 def field_reports_dir(grower_slug: str, farm_slug: str, field_slug: str) -> Path:
@@ -235,6 +247,10 @@ def field_report_path(grower_slug: str, farm_slug: str, field_slug: str, filenam
     return field_reports_dir(grower_slug, farm_slug, field_slug) / filename
 
 
+def field_dem_manifest_path(grower_slug: str, farm_slug: str, field_slug: str) -> Path:
+    return field_manifest_dir(grower_slug, farm_slug, field_slug) / "dem_terrain_manifest.json"
+
+
 def farm_report_path(grower_slug: str, farm_slug: str, filename: str) -> Path:
     return farm_reports_dir(grower_slug, farm_slug) / filename
 
@@ -252,6 +268,12 @@ def farm_cdl_year_table_path(grower_slug: str, farm_slug: str, year: int) -> Pat
 def farm_cdl_rotation_path(grower_slug: str, farm_slug: str) -> Path:
     return farm_table_path(
         grower_slug, farm_slug, f"{_normalized_farm_artifact_prefix(farm_slug)}_crop_rotation.csv"
+    )
+
+
+def farm_dem_summary_table_path(grower_slug: str, farm_slug: str) -> Path:
+    return farm_table_path(
+        grower_slug, farm_slug, f"{_normalized_farm_artifact_prefix(farm_slug)}_dem_summary.csv"
     )
 
 
@@ -282,6 +304,14 @@ def farm_cdl_preferred_full_composition_path(
 
 def shared_cdl_dir() -> Path:
     return SHARED_ROOT / "cdl"
+
+
+def shared_dem_dir() -> Path:
+    return SHARED_ROOT / "dem"
+
+
+def shared_dem_cache_path(adapter_slug: str) -> Path:
+    return shared_dem_dir() / adapter_slug
 
 
 def shared_cdl_raster_dir() -> Path:
