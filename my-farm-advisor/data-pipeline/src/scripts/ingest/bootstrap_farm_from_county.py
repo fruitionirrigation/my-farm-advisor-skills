@@ -111,7 +111,7 @@ def _query_overpass_bbox(bbox: tuple[float, float, float, float]) -> dict:
     for endpoint in OVERPASS_URLS:
         for attempt in range(1, 4):
             try:
-                headers = {"Accept": "application/json"}
+                headers = {"Accept": "application/json", "User-Agent": "curl/7.68.0"}
                 response = requests.post(endpoint, data={"data": query}, headers=headers, timeout=240)
                 response.raise_for_status()
                 return response.json()
